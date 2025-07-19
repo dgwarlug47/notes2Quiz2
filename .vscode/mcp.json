@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "file-reader-explainer": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/Users/davi/Desktop/Code/notes2Quiz2/build/index.js"]
+    }
+  }
+}
