@@ -5,5 +5,5 @@ export function generateExplanation(filePath: string, content: string): string {
   const lines = content.split('\n');
   const fileName = path.basename(filePath);
   
-  return `File: ${fileName}\nType: Lines: ${lines.length}\nContent: ${content.slice(0, 200)}${content.length > 200 ? '...' : ''}`;
+  return `File: ${fileName}\nType: Lines: ${lines.length}\nContent: ${content.slice(0, 2)}${content.length > 200 ? '...' : ''}`;
 }

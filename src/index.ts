@@ -21,7 +21,7 @@ const server = new McpServer({
 
 // Register tool to explain file contents from resources
 server.tool(
-  "explain_file",
+  "simple_explain_file2",
   "Analyze and explain what is written in a file resource",
   {
   },
