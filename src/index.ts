@@ -2,9 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { promises as fs } from "fs";
-import path from "path";
-import { generateExplanation } from "./fileExplainer.js";
+import { sendQuizQuestion } from "./quiz.js"; // Import the OpenAI function
 
 // Create server instance
 const server = new McpServer({
@@ -21,28 +19,23 @@ const server = new McpServer({
 
 // Register tool to explain file contents from resources
 server.tool(
-  "simple_explain_file2",
-  "Analyze and explain what is written in a file resource",
+  "quiz_question",
   {
   },
   async ({  }) => {
-    const filePath = "/Users/davi/Desktop/Code/notes2Quiz2/test.md";
-      
-    const content = await fs.readFile(filePath, 'utf-8');
-    const explanation = generateExplanation(filePath, content);
+    const quizQuestion = await sendQuizQuestion();
       
       return {
         content: [
           {
             type: "text",
-            text: explanation,
+            text: quizQuestion,
           },
         ],
       };
     } 
 );
 
-//
 
 // Main function to run the server
 async function main() {
