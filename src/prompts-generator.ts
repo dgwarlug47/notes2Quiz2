@@ -8,13 +8,13 @@ import fs from 'fs/promises';
  * @returns The complete prompt string
  */
 
-export function generateQuizPrompt(): Promise<string> {
+export function generateQuizPromp2t(): Promise<string> {
    const content = fs.readFile("/Users/davi/Library/CloudStorage/GoogleDrive-davisena145@gmail.com/My Drive/Desktop/Knowledge/Spare/Games/Sports/Football/players.md", 'utf-8');
    return content.then((data) => {
        return PROMPT_TEMPLATES.Quiz + data });
 }
 
-export async function generateQuizPrompt2(): Promise<string> {
+export async function generateQuizPrompt(): Promise<string> {
     const folderPath = "/Users/davi/Library/CloudStorage/GoogleDrive-davisena145@gmail.com/My Drive/Desktop/Knowledge/";
     
     try {
