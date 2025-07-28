@@ -34,3 +34,6 @@ yarn-error.log*
 
 # Focus folder
 focus/
+
+# Output
+quiz_questions_100.json
