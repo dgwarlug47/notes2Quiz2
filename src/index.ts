@@ -2,7 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { sendQuizQuestion } from "./quiz.js"; // Import the OpenAI function
+import { QuizManager } from "./quiz.js"; // Import the OpenAI function
 
 // Create server instance
 const server = new McpServer({
@@ -17,69 +17,112 @@ const server = new McpServer({
   },
 });
 
-// Register tool to explain file contents from resources
-server.tool(
-  "quiz_question",
-  {
-  },
-  async ({  }) => {
-    const quizQuestion = await sendQuizQuestion();
-      
-      return {
-        content: [
-          {
-            type: "text",
-            text: quizQuestion,
-          },
-        ],
-      };
-    } 
-);
 
+// Separate user input logic
+async function getUserInput(rl: any): Promise<{ differentFile: boolean, keepQuestion: boolean }> {
+  // Ask user if they want to continue
+  let answer = await new Promise<string>((resolve) => {
+    rl.question('Should I keep the question? (y/n): ', resolve);
+  });
+  const keepQuestion = answer.toLowerCase() === 'y'
 
-// Function to generate 100 quiz questions
+  console.log("Continuing quiz generation...");
+  answer = await new Promise<string>((resolve) => {
+    rl.question('Would you like to change the file? (y/n): ', resolve);
+  });
+  const differentFile = answer.toLowerCase() === 'y';
+
+  return { differentFile: differentFile, keepQuestion: keepQuestion };
+}
+
+// Abstract file saving logic
+async function saveQuizResults(result: any, fs: any): Promise<void> {
+  const outputFile = 'quiz_questions_100.json';
+  await fs.appendFile(outputFile, JSON.stringify(result, null, 2));
+  console.log(`Saved quiz question to ${outputFile}`);
+}
+
+// Function to generate quiz questions
 async function generateQuizQuestions() {
   const fs = await import('fs/promises');
-  const results = [];
+  const readline = await import('readline');
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
   
-  console.log("Generating 100 quiz questions...");
+  console.log("Generating quiz questions...");
   
-  for (let i = 1; i <= 100; i++) {
+  let i = 1;
+
+  let quizManager = new QuizManager();
+  
+  while (true) {
     try {
-      console.log(`Generating question ${i}/100...`);
-      const questionResponse = await sendQuizQuestion();
-      
+      console.log("");
+      console.log("");
+      console.log("");
+
+      console.log(`Generating question ${i}...`);
+      const questionResponse = await quizManager.generateQuestion();
+
       // Extract question and response - response is the last line, question is the rest
-      const lines = questionResponse.split('\n');
+      const lines = questionResponse.question.split('\n');
       const response = lines[lines.length - 1]; // Last line
-      const question = lines.slice(0, -1).join('\n'); // Everything except last line
+      const questionPart = lines.slice(0, -1).join('\n'); // Everything except last line
       
-      results.push({
+      // Split context and actual question
+      const questionStartIndex = questionPart.toLowerCase().indexOf('question:');
+      let context = questionResponse.context;
+      let category = questionResponse.category;
+
+      let actualQuestion = '';
+      
+      if (questionStartIndex !== -1) {
+        context = questionPart.substring(0, questionStartIndex).trim();
+        actualQuestion = questionPart.substring(questionStartIndex).trim();
+      } else {
+        // If no "Question:" found, treat the whole thing as the question
+        context = '';
+        actualQuestion = questionPart.trim();
+      }
+      
+      let result = {
         questionNumber: i,
         timestamp: new Date().toISOString(),
-        question: question,
-        response: response
-      });
+        context: context,
+        question: actualQuestion,
+        response: response,
+        category: category
+      };
       
       // Small delay to avoid overwhelming the API
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Get user input using separate function
+      const userInput = await getUserInput(rl);
+
+      if (userInput.differentFile) {
+        await quizManager.resetQuizPrompt();
+      }
+
+      if (userInput.keepQuestion) {
+        saveQuizResults(result, fs);
+      }
+      
+      i++;
+      
     } catch (error) {
-      console.error(`Error generating question ${i}:`, error);
-      results.push({
-        questionNumber: i,
-        timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      console.error("Error generating question:", error);
+      i++;
     }
   }
   
-  // Save to file
-  const outputFile = 'quiz_questions_100.json';
-  await fs.writeFile(outputFile, JSON.stringify(results, null, 2));
-  console.log(`Saved 100 quiz questions to ${outputFile}`);
+  rl.close();
   
-  return results;
+  // Save results using abstracted function
+  
 }
 
 // Main function to run the server
